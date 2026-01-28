@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './presentation/user/user.module';
 import { DatabaseConfig } from './infrastructure/database/database.config';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { DatabaseConfig } from './infrastructure/database/database.config';
       imports: [ConfigModule],
       useClass: DatabaseConfig,
     }),
+    AuthModule,
     UserModule,
   ],
 })

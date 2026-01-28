@@ -1,11 +1,15 @@
-import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiParam, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { Internal } from '../../auth/decorators/internal.decorator';
 
 @ApiTags('users')
 @Controller('users')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -16,6 +20,7 @@ export class UserController {
     return this.userService.findAll();
   }
 
+  @Internal()
   @Get('email/:email')
   @ApiOperation({ summary: 'Get user by email', description: 'Retrieve a specific user by email address' })
   @ApiParam({ name: 'email', description: 'User email' })
@@ -34,6 +39,7 @@ export class UserController {
     return this.userService.findOne(+id);
   }
 
+  @Internal()
   @Post()
   @ApiOperation({ summary: 'Create a new user', description: 'Create a new user with the provided details' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
@@ -52,6 +58,7 @@ export class UserController {
     return this.userService.update(+id, updateUserDto);
   }
 
+  @Internal()
   @Delete(':id')
   @ApiOperation({ summary: 'Delete user', description: 'Delete a user by ID' })
   @ApiParam({ name: 'id', description: 'User ID' })

@@ -5,6 +5,7 @@ import { HotelModule } from './presentation/hotel/hotel.module';
 import { RoomModule } from './presentation/room/room.module';
 import { RabbitMQModule } from './infrastructure/rabbitmq/rabbitmq.module';
 import { DatabaseConfig } from './infrastructure/database/database.config';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { DatabaseConfig } from './infrastructure/database/database.config';
       imports: [ConfigModule],
       useClass: DatabaseConfig,
     }),
+    AuthModule,
     RabbitMQModule,
     HotelModule,
     RoomModule,

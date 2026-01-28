@@ -10,9 +10,10 @@ import { GetHotelByIdUseCase } from '../../application/use-cases/hotel/get-hotel
 import { UpdateHotelUseCase } from '../../application/use-cases/hotel/update-hotel.use-case';
 import { DeleteHotelUseCase } from '../../application/use-cases/hotel/delete-hotel.use-case';
 import { RabbitMQModule } from '../../infrastructure/rabbitmq/rabbitmq.module';
+import { AuthModule } from '../../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Hotel]), RabbitMQModule],
+  imports: [TypeOrmModule.forFeature([Hotel]), RabbitMQModule, AuthModule],
   controllers: [HotelController],
   providers: [
     HotelService,

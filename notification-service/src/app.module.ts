@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { NotificationModule } from './presentation/notification/notification.module';
 import { RabbitMQModule } from './infrastructure/rabbitmq/rabbitmq.module';
 import { DatabaseConfig } from './infrastructure/database/database.config';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { DatabaseConfig } from './infrastructure/database/database.config';
       imports: [ConfigModule],
       useClass: DatabaseConfig,
     }),
+    AuthModule,
     RabbitMQModule,
     NotificationModule,
   ],

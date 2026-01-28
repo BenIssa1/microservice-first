@@ -10,9 +10,10 @@ import { ProcessPaymentUseCase } from '../../application/use-cases/payment/proce
 import { GetAllPaymentsUseCase } from '../../application/use-cases/payment/get-all-payments.use-case';
 import { GetPaymentByIdUseCase } from '../../application/use-cases/payment/get-payment-by-id.use-case';
 import { RabbitMQModule } from '../../infrastructure/rabbitmq/rabbitmq.module';
+import { AuthModule } from '../../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Payment, PaymentTransaction]), RabbitMQModule],
+  imports: [TypeOrmModule.forFeature([Payment, PaymentTransaction]), RabbitMQModule, AuthModule],
   controllers: [PaymentController],
   providers: [
     PaymentService,

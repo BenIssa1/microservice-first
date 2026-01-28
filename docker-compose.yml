@@ -174,6 +174,9 @@ services:
       - PORT=3001
       - DATABASE_URL=postgresql://postgres:postgres@db_hotel:5432/hotel_db
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_ACCESS_EXPIRES_IN=15m
+      - SERVICE_TOKEN=internal-service-token-change-in-production
     depends_on:
       db_hotel:
         condition: service_healthy
@@ -195,6 +198,9 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db_reservation:5432/reservation_db
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - HOTEL_SERVICE_URL=http://hotel-service:3001
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_ACCESS_EXPIRES_IN=15m
+      - SERVICE_TOKEN=internal-service-token-change-in-production
     depends_on:
       db_reservation:
         condition: service_healthy
@@ -217,6 +223,9 @@ services:
       - PORT=3003
       - DATABASE_URL=postgresql://postgres:postgres@db_payment:5432/payment_db
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_ACCESS_EXPIRES_IN=15m
+      - SERVICE_TOKEN=internal-service-token-change-in-production
     depends_on:
       db_payment:
         condition: service_healthy
@@ -237,6 +246,9 @@ services:
       - PORT=3004
       - DATABASE_URL=postgresql://postgres:postgres@db_notification:5432/notification_db
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_ACCESS_EXPIRES_IN=15m
+      - SERVICE_TOKEN=internal-service-token-change-in-production
     depends_on:
       db_notification:
         condition: service_healthy
@@ -256,6 +268,9 @@ services:
       - NODE_ENV=development
       - PORT=3005
       - DATABASE_URL=postgresql://postgres:postgres@db_user:5432/user_db
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_ACCESS_EXPIRES_IN=15m
+      - SERVICE_TOKEN=internal-service-token-change-in-production
     depends_on:
       db_user:
         condition: service_healthy
@@ -279,6 +294,7 @@ services:
       - JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
       - JWT_ACCESS_EXPIRES_IN=15m
       - JWT_REFRESH_EXPIRES_IN=7d
+      - SERVICE_TOKEN=internal-service-token-change-in-production
     depends_on:
       db_auth:
         condition: service_healthy

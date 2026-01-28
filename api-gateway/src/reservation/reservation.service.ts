@@ -45,10 +45,19 @@ export class ReservationService {
     }
   }
 
-  async create(createReservationDto: CreateReservationDto) {
+  async create(createReservationDto: CreateReservationDto, idempotencyKey?: string) {
     try {
+      const headers: any = {};
+      if (idempotencyKey) {
+        headers['Idempotency-Key'] = idempotencyKey;
+      }
+
       const response = await firstValueFrom(
-        this.httpService.post(`${this.reservationServiceUrl}/reservations`, createReservationDto),
+        this.httpService.post(
+          `${this.reservationServiceUrl}/reservations`,
+          createReservationDto,
+          { headers },
+        ),
       );
       return response.data;
     } catch (error) {

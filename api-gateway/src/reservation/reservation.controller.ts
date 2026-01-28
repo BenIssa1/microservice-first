@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Headers } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ReservationService } from './reservation.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
@@ -38,13 +38,17 @@ export class ReservationController {
 
   @Roles('user', 'admin')
   @Post()
-  @ApiOperation({ summary: 'Create a new reservation', description: 'Create a new reservation with the provided details' })
+  @ApiOperation({ summary: 'Create a new reservation', description: 'Create a new reservation with the provided details. Use Idempotency-Key header to prevent duplicate reservations.' })
   @ApiResponse({ status: 201, description: 'Reservation created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
-  create(@Body() createReservationDto: CreateReservationDto, @CurrentUser() user: any) {
+  create(
+    @Body() createReservationDto: CreateReservationDto,
+    @CurrentUser() user: any,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
     // Set user_id from authenticated user
     createReservationDto.user_id = user.userId;
-    return this.reservationService.create(createReservationDto);
+    return this.reservationService.create(createReservationDto, idempotencyKey);
   }
 
   @Roles('user', 'admin')

@@ -7,9 +7,10 @@ import { NotificationRepository } from '../../infrastructure/repositories/notifi
 import { CreateNotificationUseCase } from '../../application/use-cases/notification/create-notification.use-case';
 import { GetAllNotificationsUseCase } from '../../application/use-cases/notification/get-all-notifications.use-case';
 import { GetNotificationByIdUseCase } from '../../application/use-cases/notification/get-notification-by-id.use-case';
+import { AuthModule } from '../../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Notification])],
+  imports: [TypeOrmModule.forFeature([Notification]), AuthModule],
   controllers: [NotificationController],
   providers: [
     NotificationService,

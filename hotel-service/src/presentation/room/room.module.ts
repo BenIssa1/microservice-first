@@ -11,9 +11,10 @@ import { GetRoomsByHotelUseCase } from '../../application/use-cases/room/get-roo
 import { UpdateRoomUseCase } from '../../application/use-cases/room/update-room.use-case';
 import { DeleteRoomUseCase } from '../../application/use-cases/room/delete-room.use-case';
 import { RabbitMQModule } from '../../infrastructure/rabbitmq/rabbitmq.module';
+import { AuthModule } from '../../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Room, Hotel]), RabbitMQModule],
+  imports: [TypeOrmModule.forFeature([Room, Hotel]), RabbitMQModule, AuthModule],
   controllers: [RoomController],
   providers: [
     RoomService,

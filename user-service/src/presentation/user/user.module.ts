@@ -10,9 +10,10 @@ import { GetUserByIdUseCase } from '../../application/use-cases/user/get-user-by
 import { GetUserByEmailUseCase } from '../../application/use-cases/user/get-user-by-email.use-case';
 import { UpdateUserUseCase } from '../../application/use-cases/user/update-user.use-case';
 import { DeleteUserUseCase } from '../../application/use-cases/user/delete-user.use-case';
+import { AuthModule } from '../../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User])],
+  imports: [TypeOrmModule.forFeature([User]), AuthModule],
   controllers: [UserController],
   providers: [
     UserService,
