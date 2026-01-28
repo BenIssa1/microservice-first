@@ -3,6 +3,8 @@ import { IReservationRepository } from '../../../domain/repositories/reservation
 import { Reservation, ReservationStatus } from '../../../domain/entities/reservation.entity';
 import { ReservationDate } from '../../../domain/entities/reservation-date.entity';
 import { HotelServiceClient } from '../../../infrastructure/clients/hotel-service.client';
+import { IdempotencyKeyRepository } from '../../../infrastructure/repositories/idempotency-key.repository';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class CreateReservationUseCase {
@@ -10,6 +12,7 @@ export class CreateReservationUseCase {
     @Inject('IReservationRepository')
     private readonly reservationRepository: IReservationRepository,
     private readonly hotelServiceClient: HotelServiceClient,
+    private readonly idempotencyKeyRepository: IdempotencyKeyRepository,
   ) {}
 
   async execute(reservationData: {
@@ -20,7 +23,23 @@ export class CreateReservationUseCase {
     check_out: Date;
     guests?: number;
     special_requests?: string;
-  }): Promise<Reservation> {
+    idempotency_key?: string;
+  }): Promise<{ reservation: Reservation; isNew: boolean }> {
+    // Generate idempotency key if not provided
+    const idempotencyKey = reservationData.idempotency_key || uuidv4();
+
+    // Check if this idempotency key already exists
+    const existingKey = await this.idempotencyKeyRepository.findByKey(idempotencyKey);
+    if (existingKey) {
+      // Return the existing reservation
+      const existingReservation = await this.reservationRepository.findById(existingKey.reservation_id);
+      if (existingReservation) {
+        return { reservation: existingReservation, isNew: false };
+      }
+      // If reservation was deleted, remove the key and continue
+      await this.idempotencyKeyRepository.deleteExpired();
+    }
+
     // Check room availability
     const room = await this.hotelServiceClient.getRoom(reservationData.room_id);
     if (!room || !room.available) {
@@ -61,6 +80,21 @@ export class CreateReservationUseCase {
       ],
     });
 
-    return reservation;
+    // Store idempotency key with reservation response
+    await this.idempotencyKeyRepository.create(
+      idempotencyKey,
+      reservation.id,
+      {
+        id: reservation.id,
+        user_id: reservation.user_id,
+        hotel_id: reservation.hotel_id,
+        room_id: reservation.room_id,
+        status: reservation.status,
+        total_price: reservation.total_price,
+      },
+      24, // Expires in 24 hours
+    );
+
+    return { reservation, isNew: true };
   }
 }

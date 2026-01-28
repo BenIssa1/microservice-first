@@ -28,26 +28,31 @@ export class ReservationService {
     return await this.getReservationByIdUseCase.execute(id);
   }
 
-  async create(createReservationDto: CreateReservationDto) {
-    const reservation = await this.createReservationUseCase.execute({
+  async create(createReservationDto: CreateReservationDto & { idempotency_key?: string }) {
+    const result = await this.createReservationUseCase.execute({
       ...createReservationDto,
       check_in: new Date(createReservationDto.check_in),
       check_out: new Date(createReservationDto.check_out),
     });
 
-    // Publish event for payment
-    await this.rabbitMQService.sendToQueue('payment.required', {
-      reservationId: reservation.id,
-      amount: reservation.total_price,
-      userId: reservation.user_id,
-    });
+    const { reservation, isNew } = result;
 
-    // Publish event for notification
-    await this.rabbitMQService.sendToQueue('reservation.created', {
-      reservationId: reservation.id,
-      userId: reservation.user_id,
-      hotelId: reservation.hotel_id,
-    });
+    // Only publish events if this is a new reservation (not a duplicate request)
+    if (isNew) {
+      // Publish event for payment
+      await this.rabbitMQService.sendToQueue('payment.required', {
+        reservationId: reservation.id,
+        amount: reservation.total_price,
+        userId: reservation.user_id,
+      });
+
+      // Publish event for notification
+      await this.rabbitMQService.sendToQueue('reservation.created', {
+        reservationId: reservation.id,
+        userId: reservation.user_id,
+        hotelId: reservation.hotel_id,
+      });
+    }
 
     return reservation;
   }

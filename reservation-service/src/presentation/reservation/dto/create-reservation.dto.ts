@@ -28,4 +28,8 @@ export class CreateReservationDto {
   @IsString()
   @IsOptional()
   special_requests?: string;
+
+  @IsString()
+  @IsOptional()
+  idempotency_key?: string;
 }
