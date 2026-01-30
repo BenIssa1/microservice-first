@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { Auth } from '../../domain/entities/auth.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -12,14 +14,27 @@ import { ValidateTokenUseCase } from '../../application/use-cases/auth/validate-
 import { CreateCredentialsUseCase } from '../../application/use-cases/auth/create-credentials.use-case';
 import { UserServiceClient } from '../../infrastructure/clients/user-service.client';
 import { JwtAuthModule } from '../../infrastructure/jwt/jwt.module';
-import { RabbitMQModule } from '../../infrastructure/rabbitmq/rabbitmq.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Auth]),
     HttpModule,
     JwtAuthModule,
-    RabbitMQModule,
+    ClientsModule.registerAsync([
+      {
+        name: 'NOTIFICATION_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [configService.get<string>('RABBITMQ_URL') || 'amqp://guest:guest@localhost:5672'],
+            queue: 'notification_queue',
+            queueOptions: { durable: true },
+          },
+        }),
+        inject: [ConfigService],
+      },
+    ]),
   ],
   controllers: [AuthController],
   providers: [

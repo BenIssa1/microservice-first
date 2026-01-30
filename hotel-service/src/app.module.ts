@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HotelModule } from './presentation/hotel/hotel.module';
 import { RoomModule } from './presentation/room/room.module';
-import { RabbitMQModule } from './infrastructure/rabbitmq/rabbitmq.module';
 import { DatabaseConfig } from './infrastructure/database/database.config';
 import { AuthModule } from './auth/auth.module';
 
@@ -17,7 +16,6 @@ import { AuthModule } from './auth/auth.module';
       useClass: DatabaseConfig,
     }),
     AuthModule,
-    RabbitMQModule,
     HotelModule,
     RoomModule,
   ],

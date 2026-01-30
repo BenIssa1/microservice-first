@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { CreateRoomUseCase } from '../../application/use-cases/room/create-room.use-case';
 import { GetRoomsByHotelUseCase } from '../../application/use-cases/room/get-rooms-by-hotel.use-case';
 import { UpdateRoomUseCase } from '../../application/use-cases/room/update-room.use-case';
 import { DeleteRoomUseCase } from '../../application/use-cases/room/delete-room.use-case';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
-import { RabbitMQService } from '../../infrastructure/rabbitmq/rabbitmq.service';
 
 @Injectable()
 export class RoomService {
@@ -14,7 +14,7 @@ export class RoomService {
     private readonly getRoomsByHotelUseCase: GetRoomsByHotelUseCase,
     private readonly updateRoomUseCase: UpdateRoomUseCase,
     private readonly deleteRoomUseCase: DeleteRoomUseCase,
-    private readonly rabbitMQService: RabbitMQService,
+    @Inject('HOTEL_EVENTS_SERVICE') private readonly hotelEventsClient: ClientProxy,
   ) {}
 
   async findAll(hotelId: number) {
@@ -33,11 +33,11 @@ export class RoomService {
     const room = await this.updateRoomUseCase.execute(id, updateRoomDto);
     // Check if available property was updated
     if ('available' in updateRoomDto && updateRoomDto.available !== undefined) {
-      await this.rabbitMQService.sendToQueue('room.availability.update', {
+      this.hotelEventsClient.emit('room.availability.update', {
         roomId: room.id,
         hotelId: room.hotel_id,
         available: room.available,
-      });
+      }).subscribe();
     }
     return room;
   }

@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { CreateReservationUseCase } from '../../application/use-cases/reservation/create-reservation.use-case';
 import { GetAllReservationsUseCase } from '../../application/use-cases/reservation/get-all-reservations.use-case';
 import { GetReservationByIdUseCase } from '../../application/use-cases/reservation/get-reservation-by-id.use-case';
@@ -6,7 +7,6 @@ import { UpdateReservationUseCase } from '../../application/use-cases/reservatio
 import { CancelReservationUseCase } from '../../application/use-cases/reservation/cancel-reservation.use-case';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
-import { RabbitMQService } from '../../infrastructure/rabbitmq/rabbitmq.service';
 import { ReservationStatus } from '../../domain/entities/reservation.entity';
 
 @Injectable()
@@ -17,7 +17,8 @@ export class ReservationService {
     private readonly getReservationByIdUseCase: GetReservationByIdUseCase,
     private readonly updateReservationUseCase: UpdateReservationUseCase,
     private readonly cancelReservationUseCase: CancelReservationUseCase,
-    private readonly rabbitMQService: RabbitMQService,
+    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
+    @Inject('PAYMENT_SERVICE') private readonly paymentClient: ClientProxy,
   ) {}
 
   async findAll(userId?: number) {
@@ -39,19 +40,19 @@ export class ReservationService {
 
     // Only publish events if this is a new reservation (not a duplicate request)
     if (isNew) {
-      // Publish event for payment
-      await this.rabbitMQService.sendToQueue('payment.required', {
+      // Publish event for payment (NestJS microservices)
+      this.paymentClient.emit('payment.required', {
         reservationId: reservation.id,
         amount: reservation.total_price,
         userId: reservation.user_id,
-      });
+      }).subscribe();
 
-      // Publish event for notification
-      await this.rabbitMQService.sendToQueue('reservation.created', {
+      // Publish event for notification (NestJS microservices)
+      this.notificationClient.emit('reservation.created', {
         reservationId: reservation.id,
         userId: reservation.user_id,
         hotelId: reservation.hotel_id,
-      });
+      }).subscribe();
     }
 
     return reservation;
@@ -61,10 +62,10 @@ export class ReservationService {
     const reservation = await this.updateReservationUseCase.execute(id, updateReservationDto);
     
     if (updateReservationDto.status === ReservationStatus.CONFIRMED) {
-      await this.rabbitMQService.sendToQueue('reservation.confirmed', {
+      this.notificationClient.emit('reservation.confirmed', {
         reservationId: reservation.id,
         userId: reservation.user_id,
-      });
+      }).subscribe();
     }
 
     return reservation;
@@ -73,8 +74,8 @@ export class ReservationService {
   async cancel(id: number) {
     await this.cancelReservationUseCase.execute(id);
     
-    await this.rabbitMQService.sendToQueue('reservation.cancelled', {
+    this.notificationClient.emit('reservation.cancelled', {
       reservationId: id,
-    });
+    }).subscribe();
   }
 }

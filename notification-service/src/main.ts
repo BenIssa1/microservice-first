@@ -1,11 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { Transport } from '@nestjs/microservices';
 import { AppModule } from './app.module';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+  const configService = app.get(ConfigService);
+
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
     forbidNonWhitelisted: true,
@@ -13,6 +16,17 @@ async function bootstrap() {
   }));
 
   app.enableCors();
+
+  // Microservice RabbitMQ : écoute sur notification_queue (événements user.registered, etc.)
+  app.connectMicroservice({
+    transport: Transport.RMQ,
+    options: {
+      urls: [configService.get<string>('RABBITMQ_URL') || 'amqp://guest:guest@localhost:5672'],
+      queue: 'notification_queue',
+      queueOptions: { durable: true },
+    },
+  });
+  await app.startAllMicroservices();
 
   // Swagger : uniquement en dev/staging (pas en production)
   if (process.env.NODE_ENV !== 'production') {

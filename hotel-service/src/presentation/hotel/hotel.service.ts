@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { CreateHotelUseCase } from '../../application/use-cases/hotel/create-hotel.use-case';
 import { GetAllHotelsUseCase } from '../../application/use-cases/hotel/get-all-hotels.use-case';
 import { GetHotelByIdUseCase } from '../../application/use-cases/hotel/get-hotel-by-id.use-case';
@@ -6,7 +7,6 @@ import { UpdateHotelUseCase } from '../../application/use-cases/hotel/update-hot
 import { DeleteHotelUseCase } from '../../application/use-cases/hotel/delete-hotel.use-case';
 import { CreateHotelDto } from './dto/create-hotel.dto';
 import { UpdateHotelDto } from './dto/update-hotel.dto';
-import { RabbitMQService } from '../../infrastructure/rabbitmq/rabbitmq.service';
 
 @Injectable()
 export class HotelService {
@@ -16,7 +16,7 @@ export class HotelService {
     private readonly getHotelByIdUseCase: GetHotelByIdUseCase,
     private readonly updateHotelUseCase: UpdateHotelUseCase,
     private readonly deleteHotelUseCase: DeleteHotelUseCase,
-    private readonly rabbitMQService: RabbitMQService,
+    @Inject('HOTEL_EVENTS_SERVICE') private readonly hotelEventsClient: ClientProxy,
   ) {}
 
   async findAll(city?: string) {
@@ -29,21 +29,21 @@ export class HotelService {
 
   async create(createHotelDto: CreateHotelDto) {
     const hotel = await this.createHotelUseCase.execute(createHotelDto);
-    await this.rabbitMQService.sendToQueue('hotel.created', {
+    this.hotelEventsClient.emit('hotel.created', {
       id: hotel.id,
       name: hotel.name,
       city: hotel.city,
-    });
+    }).subscribe();
     return hotel;
   }
 
   async update(id: number, updateHotelDto: UpdateHotelDto) {
     const hotel = await this.updateHotelUseCase.execute(id, updateHotelDto);
-    await this.rabbitMQService.sendToQueue('hotel.updated', {
+    this.hotelEventsClient.emit('hotel.updated', {
       id: hotel.id,
       name: hotel.name,
       city: hotel.city,
-    });
+    }).subscribe();
     return hotel;
   }
 

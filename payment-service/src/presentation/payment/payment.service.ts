@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { CreatePaymentUseCase } from '../../application/use-cases/payment/create-payment.use-case';
 import { ProcessPaymentUseCase } from '../../application/use-cases/payment/process-payment.use-case';
 import { GetAllPaymentsUseCase } from '../../application/use-cases/payment/get-all-payments.use-case';
 import { GetPaymentByIdUseCase } from '../../application/use-cases/payment/get-payment-by-id.use-case';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { ProcessPaymentDto } from './dto/process-payment.dto';
-import { RabbitMQService } from '../../infrastructure/rabbitmq/rabbitmq.service';
 import { PaymentStatus } from '../../domain/entities/payment.entity';
 
 @Injectable()
@@ -15,7 +15,7 @@ export class PaymentService {
     private readonly processPaymentUseCase: ProcessPaymentUseCase,
     private readonly getAllPaymentsUseCase: GetAllPaymentsUseCase,
     private readonly getPaymentByIdUseCase: GetPaymentByIdUseCase,
-    private readonly rabbitMQService: RabbitMQService,
+    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
   ) {}
 
   async findAll(reservationId?: number) {
@@ -34,16 +34,16 @@ export class PaymentService {
     const payment = await this.processPaymentUseCase.execute(id, processPaymentDto.payment_token);
     
     if (payment.status === PaymentStatus.COMPLETED) {
-      await this.rabbitMQService.sendToQueue('payment.completed', {
+      this.notificationClient.emit('payment.completed', {
         paymentId: payment.id,
         reservationId: payment.reservation_id,
         amount: payment.amount,
-      });
+      }).subscribe();
     } else if (payment.status === PaymentStatus.FAILED) {
-      await this.rabbitMQService.sendToQueue('payment.failed', {
+      this.notificationClient.emit('payment.failed', {
         paymentId: payment.id,
         reservationId: payment.reservation_id,
-      });
+      }).subscribe();
     }
 
     return payment;

@@ -1,8 +1,8 @@
 import { Injectable, Inject, ConflictException } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import * as bcrypt from 'bcrypt';
 import { IAuthRepository } from '../../../domain/repositories/auth.repository.interface';
 import { UserServiceClient } from '../../../infrastructure/clients/user-service.client';
-import { RabbitMQService } from '../../../infrastructure/rabbitmq/rabbitmq.service';
 
 @Injectable()
 export class RegisterUseCase {
@@ -10,7 +10,8 @@ export class RegisterUseCase {
     @Inject('IAuthRepository')
     private readonly authRepository: IAuthRepository,
     private readonly userServiceClient: UserServiceClient,
-    private readonly rabbitMQService: RabbitMQService,
+    @Inject('NOTIFICATION_SERVICE')
+    private readonly notificationClient: ClientProxy,
   ) {}
 
   async execute(data: {
@@ -54,18 +55,20 @@ export class RegisterUseCase {
         password_hash,
       });
 
-      // Send notification event via RabbitMQ (non-blocking, fire and forget)
-      // Don't await - let it happen asynchronously so it doesn't block registration
-      this.rabbitMQService.sendToQueue('user.registered', {
-        userId: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        phone: user.phone,
-      }).catch((notificationError) => {
-        // Log but don't fail registration if notification fails
-        console.error('[AUTH SERVICE] Failed to send registration notification:', notificationError);
-      });
+      // Send notification event via NestJS microservices (non-blocking, fire and forget)
+      this.notificationClient
+        .emit('user.registered', {
+          userId: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          phone: user.phone,
+        })
+        .subscribe({
+          error: (err) => {
+            console.error('[AUTH SERVICE] Failed to send registration notification:', err);
+          },
+        });
 
       // Return user info only (no tokens - user must login separately)
       return {

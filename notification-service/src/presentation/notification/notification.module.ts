@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Notification } from '../../domain/entities/notification.entity';
 import { NotificationController } from './notification.controller';
+import { NotificationEventsController } from './notification-events.controller';
 import { NotificationService } from './notification.service';
 import { NotificationRepository } from '../../infrastructure/repositories/notification.repository';
 import { CreateNotificationUseCase } from '../../application/use-cases/notification/create-notification.use-case';
@@ -11,7 +12,7 @@ import { AuthModule } from '../../auth/auth.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Notification]), AuthModule],
-  controllers: [NotificationController],
+  controllers: [NotificationController, NotificationEventsController],
   providers: [
     NotificationService,
     NotificationRepository,
