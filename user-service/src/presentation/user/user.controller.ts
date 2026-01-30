@@ -30,8 +30,9 @@ export class UserController {
     return this.userService.findByEmail(email);
   }
 
+  @Internal()
   @Get(':id')
-  @ApiOperation({ summary: 'Get user by ID', description: 'Retrieve a specific user by its ID' })
+  @ApiOperation({ summary: 'Get user by ID', description: 'Retrieve a specific user by its ID (JWT or X-Service-Token for service-to-service)' })
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ status: 200, description: 'User retrieved successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })

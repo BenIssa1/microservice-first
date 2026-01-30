@@ -18,9 +18,10 @@ Ce document explique les décisions architecturales et les bonnes pratiques appl
 - **Données** : Password hash, refresh tokens, tentatives de connexion
 - **Base de données** : PostgreSQL (`db_auth`)
 
-#### 3. **API Gateway** (`api-gateway`)
-- **Responsabilité** : Point d'entrée unique, routage, authentification globale
-- **Fonctions** : Validation JWT, contrôle d'accès basé sur les rôles
+#### 3. **Traefik** (reverse proxy)
+- **Responsabilité** : Point d'entrée unique, routage HTTP par préfixe de chemin
+- **Fonctions** : Route `/auth` → auth-service, `/hotels` → hotel-service, etc.
+- **Authentification** : Chaque service applique ses propres guards JWT
 
 ## ✅ Bonnes Pratiques Appliquées
 
@@ -71,7 +72,7 @@ Dans une architecture microservices, il n'y a **pas de transactions ACID distrib
 **Approche actuelle : Orchestration**
 
 - **Auth Service orchestre** l'inscription (`RegisterUseCase`)
-- **API Gateway orchestre** la création admin (`UserService.create()`)
+- **User Service** (ou un orchestrateur) gère la création admin avec credentials
 
 **Pourquoi cette approche ?**
 - ✅ Plus simple à comprendre et déboguer
@@ -104,7 +105,7 @@ const existingUser = await userServiceClient.getUserByEmail(email);
 ```
 Client
   ↓
-API Gateway (/auth/register)
+Traefik (port 3000) → /auth/register
   ↓
 Auth Service (RegisterUseCase)
   ├─→ Vérifie email dans Auth
@@ -127,9 +128,9 @@ Retourne { user, message: "User registered successfully. Please login..." }
 ```
 Admin (authentifié)
   ↓
-API Gateway (/users)
+Traefik → /users
   ↓
-User Service (API Gateway)
+User Service
   ├─→ User Service (createUser)
   │     └─→ Crée User dans db_user
   └─→ Auth Service (create-credentials)
@@ -144,7 +145,7 @@ Retourne User
 ```
 Client
   ↓
-API Gateway (/auth/login)
+Traefik → /auth/login
   ↓
 Auth Service (LoginUseCase)
   ├─→ Auth Repository (findByEmail)

@@ -14,6 +14,7 @@ export class LoginUseCase {
   ) {}
 
   async execute(email: string, password: string) {
+
     // Find auth by email
     const auth = await this.authRepository.findByEmail(email);
     if (!auth) {
@@ -37,6 +38,8 @@ export class LoginUseCase {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    console.log('auth', auth);
+
     // Reset failed attempts on successful login
     await this.authRepository.update(auth.user_id, {
       failed_login_attempts: 0,
@@ -46,12 +49,16 @@ export class LoginUseCase {
     // Get user from User Service
     const user = await this.userServiceClient.getUserById(auth.user_id);
 
+    console.log('user', user);
+
     // Generate tokens
     const tokens = await this.jwtAuthService.generateTokens({
       sub: user.id,
       email: user.email,
       role: user.role,
     });
+
+    console.log('tokens', tokens);
 
     // Update refresh token in auth
     const refreshTokenExpiresAt = new Date();

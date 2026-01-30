@@ -24,6 +24,7 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
+    console.log('loginDto', loginDto);
     return await this.loginUseCase.execute(loginDto.email, loginDto.password);
   }
 

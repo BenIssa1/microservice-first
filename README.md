@@ -19,27 +19,26 @@ Système de réservation d'hôtel inspiré d'Airbnb, construit avec NestJS en ar
 Le projet suit une architecture microservices avec Clean Architecture pour chaque service :
 
 ```
-┌─────────────┐
-│ API Gateway │
-└──────┬──────┘
-       │
-   ┌───┴───┬──────────┬──────────┬──────────────┐
-   │       │          │          │              │
-┌──▼──┐ ┌──▼──┐  ┌───▼───┐  ┌───▼───┐  ┌──────▼──────┐
-│Hotel│ │Reser│  │Payment│  │Notific│  │  RabbitMQ   │
-│Serv.│ │vati.│  │Serv.  │  │Serv.  │  │   Events    │
-└──┬──┘ └──┬──┘  └───┬───┘  └───┬───┘  └─────────────┘
-   │       │          │          │
-┌──▼──┐ ┌──▼──┐  ┌───▼───┐  ┌───▼───┐
-│DB   │ │DB   │  │DB     │  │DB     │
-│Hotel│ │Reser│  │Payment│  │Notific│
-└─────┘ └─────┘  └───────┘  └───────┘
+┌─────────────────┐
+│ Traefik (:3000) │  ← Point d'entrée unique (reverse proxy)
+└────────┬────────┘
+         │
+   ┌─────┴─────┬──────────┬──────────┬──────────────┐
+   │           │          │          │              │
+┌──▼──┐  ┌─────▼────┐ ┌───▼───┐  ┌───▼───┐  ┌──────▼──────┐
+│Auth │  │Hotel     │ │Reser- │  │Payment│  │  RabbitMQ   │
+│User │  │Reservation│ │vation│  │Notific│  │   Events    │
+└──┬──┘  └─────┬────┘ └───┬───┘  └───┬───┘  └─────────────┘
+   │           │          │          │
+   │      ┌────▼────┐ ┌───▼───┐  ┌───▼───┐
+   │      │DB Hotel │ │DB Res.│  │DB Pay.│ ...
+   │      └─────────┘ └───────┘  └───────┘
 ```
 
 ## 🎯 Services
 
-### 1. API Gateway (Port 3000)
-Point d'entrée unique pour toutes les requêtes client. Route les requêtes vers les services appropriés.
+### 1. Traefik (Port 3000)
+Reverse proxy : point d'entrée unique. Route les requêtes par préfixe de chemin (`/auth`, `/hotels`, `/reservations`, etc.) vers les services. Dashboard : http://localhost:8080
 
 ### 2. Hotel Service (Port 3001)
 Gère les hôtels et les chambres :
@@ -81,14 +80,6 @@ Gère les notifications :
 
 ```
 hotel-booking-system/
-├── api-gateway/              # API Gateway Service
-│   ├── src/
-│   │   ├── hotel/
-│   │   ├── reservation/
-│   │   ├── payment/
-│   │   └── notification/
-│   └── Dockerfile
-│
 ├── hotel-service/            # Hotel Service
 │   ├── src/
 │   │   ├── domain/           # Entities & Interfaces
@@ -136,7 +127,6 @@ hotel-booking-system/
 
 ```bash
 # Installer les dépendances pour chaque service
-cd api-gateway && npm install && cd ..
 cd hotel-service && npm install && cd ..
 cd reservation-service && npm install && cd ..
 cd payment-service && npm install && cd ..
@@ -161,10 +151,8 @@ docker-compose down
 ### Développement local
 
 ```bash
-# Terminal 1 - API Gateway
-cd api-gateway && npm run start:dev
-
-# Terminal 2 - Hotel Service
+# Démarrer Traefik (ou utiliser docker-compose qui l'inclut)
+# Terminal 1 - Hotel Service
 cd hotel-service && npm run start:dev
 
 # Terminal 3 - Reservation Service
@@ -179,7 +167,25 @@ cd notification-service && npm run start:dev
 
 ## 📡 API Endpoints
 
-### API Gateway (http://localhost:3000)
+### API via Traefik (http://localhost:3000)
+
+**Page d’accueil** : [http://localhost:3000](http://localhost:3000) — liens vers les endpoints et les Swagger.
+
+**Swagger (pour les devs front)** : chaque service expose sa doc sur `/api` via Traefik :
+- **Auth** : http://localhost:3000/auth/api
+- **Users** : http://localhost:3000/users/api
+- **Hotels** : http://localhost:3000/hotels/api
+- **Reservations** : http://localhost:3000/reservations/api
+- **Payments** : http://localhost:3000/payments/api
+- **Notifications** : http://localhost:3000/notifications/api
+
+Les requêtes « Try it out » dans Swagger partent vers `localhost:3000`, donc tout passe par Traefik (un seul point d’entrée, CORS géré par les services).
+
+**Sécurité :** Swagger n'est exposé **qu'en dev/staging** (`NODE_ENV !== 'production'`). En production, les liens `/auth/api`, `/hotels/api`, etc. renvoient 404 côté service, donc même avec le lien direct vers un microservice, la doc n'est pas accessible.
+
+**Accès API en production (Postman, etc.) :** Oui, les routes API restent accessibles en production (sinon le front ne pourrait pas les appeler). La sécurité ne repose **pas** sur le fait de cacher l’URL :
+- **Routes publiques** (ex. `POST /auth/login`, `POST /auth/register`) : tout le monde peut les appeler (Postman, front, mobile). C’est voulu. On les protège par validation, rate limiting, captcha si besoin.
+- **Routes protégées** (ex. `GET /hotels`, `POST /reservations`) : **JWT obligatoire**. Sans token valide → **401 Unauthorized**. Connaître le lien ne suffit pas : il faut un token obtenu via login. En production, CORS peut être restreint à l’origine du front pour limiter les appels depuis d’autres domaines (le navigateur bloque ; Postman ou un script peuvent toujours envoyer un JWT valide, d’où l’importance de ne pas exposer de token et de bien gérer les rôles).
 
 #### Hotels
 - `GET /hotels` - Liste tous les hôtels
@@ -376,7 +382,7 @@ Chaque service utilise des variables d'environnement définies dans `docker-comp
 
 ### Accès aux services
 
-- **API Gateway**: http://localhost:3000
+- **Traefik (API)**: http://localhost:3000 — **Dashboard Traefik**: http://localhost:8080
 - **RabbitMQ Management**: http://localhost:15672 (guest/guest)
 - **PostgreSQL Hotels**: localhost:5432
 - **PostgreSQL Reservations**: localhost:5433

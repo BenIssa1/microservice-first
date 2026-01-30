@@ -1,3 +1,4 @@
+name: micro
 
 services:
   rabbitmq:
@@ -139,26 +140,28 @@ services:
     networks:
       - microservices-network
 
-  api-gateway:
-    build:
-      context: ./api-gateway
-      dockerfile: Dockerfile
-    container_name: api-gateway
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:3000"
     ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - HOTEL_SERVICE_URL=http://hotel-service:3001
-      - RESERVATION_SERVICE_URL=http://reservation-service:3002
-      - PAYMENT_SERVICE_URL=http://payment-service:3003
-      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
-      - USER_SERVICE_URL=http://user-service:3005
-      - AUTH_SERVICE_URL=http://auth-service:3006
-      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
-      - JWT_ACCESS_EXPIRES_IN=15m
-    depends_on:
-      rabbitmq:
-        condition: service_started
+      - "3000:3000"   # API (point d'entrée unique)
+      - "8080:8080"   # Dashboard Traefik
+    volumes:
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+    networks:
+      - microservices-network
+
+  # Page d'accueil sur http://localhost:3000/
+  welcome:
+    image: nginx:alpine
+    container_name: welcome
+    volumes:
+      - ./traefik/index.html:/usr/share/nginx/html/index.html:ro
     networks:
       - microservices-network
 

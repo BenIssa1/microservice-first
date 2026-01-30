@@ -2,38 +2,38 @@
 
 ## 🎯 Bonnes Pratiques : Où placer la protection des routes ?
 
-### ✅ **Réponse : Sur l'API Gateway**
+### ✅ **Réponse : Sur chaque service (avec Traefik en reverse proxy)**
 
-**Pourquoi ?**
+**Avec Traefik**, il n’y a plus d’API Gateway applicatif. Le routage est assuré par Traefik (reverse proxy), et **chaque service applique lui-même** la validation JWT et le contrôle des rôles.
 
-1. **Point d'entrée unique** : Toutes les requêtes passent par l'API Gateway
-2. **Sécurité centralisée** : Une seule couche de sécurité à maintenir
-3. **Performance** : Les requêtes non autorisées sont bloquées avant d'atteindre les services
-4. **Simplicité** : Les services backend n'ont pas besoin de gérer l'authentification
-5. **Séparation des responsabilités** : L'API Gateway gère la sécurité, les services gèrent la logique métier
+**Pourquoi sur les services ?**
 
-### ❌ **Pourquoi PAS sur les services individuels ?**
+1. **Point d’entrée unique** : Traefik route par chemin (`/auth`, `/hotels`, etc.) vers le bon service
+2. **Sécurité au plus près du métier** : Chaque service valide le JWT et les rôles pour ses propres routes
+3. **Pas de couche applicative centralisée** : Moins de code à maintenir qu’un gateway dédié
+4. **Cohérence** : Même `JWT_SECRET` partagé entre les services pour valider les tokens
 
-- Duplication de code
-- Maintenance complexe
-- Risque d'incohérence
-- Performance dégradée (validation multiple)
+### ❌ **Pourquoi plus d’API Gateway dédié ?**
+
+- Traefik assure le routage et le point d’entrée unique
+- Les services ont déjà leurs guards JWT et rôles (NestJS)
+- Moins de duplication qu’un gateway qui proxyait tout
 
 ## 🏗️ Architecture Implémentée
 
 ```
 Client
   ↓
-API Gateway (JWT Validation + Role Check)
+Traefik (reverse proxy, port 3000)
   ↓
-Services Backend (Pas de validation nécessaire)
+Services (chacun valide JWT + rôles sur ses routes)
 ```
 
 ## 🔐 Système d'Authentification
 
-### Guards Globaux
+### Guards par service
 
-Les guards sont appliqués **globalement** dans `app.module.ts` :
+Chaque service (hotel-service, reservation-service, etc.) applique dans son `app.module.ts` :
 - `JwtAuthGuard` : Valide le token JWT
 - `RolesGuard` : Vérifie les rôles utilisateur
 
@@ -121,8 +121,8 @@ findOne(@Param('id') id: string, @CurrentUser() user: any) {
 
 1. **Registration/Login** → Auth Service génère les tokens JWT
 2. **Requête Authentifiée** → Client envoie `Authorization: Bearer <token>`
-3. **API Gateway** → Valide le token avec JwtStrategy
-4. **RolesGuard** → Vérifie si l'utilisateur a le bon rôle
+3. **Traefik** → Route la requête vers le bon service (ex. `/hotels` → hotel-service)
+4. **Service cible** → Valide le token avec JwtStrategy et RolesGuard
 5. **Route Exécutée** → Si tout est OK
 
 ## 📝 Configuration

@@ -14,25 +14,25 @@ async function bootstrap() {
 
   app.enableCors();
 
-  // Swagger configuration
-  const config = new DocumentBuilder()
-    .setTitle('Hotel Service API')
-    .setDescription('Hotel management microservice')
-    .setVersion('1.0')
-    .addTag('hotels', 'Hotel operations')
-    .addTag('rooms', 'Room operations')
-    .build();
-  
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
-  });
-  
+  // Swagger : uniquement en dev/staging (pas en production)
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Hotel Service API')
+      .setDescription('Hotel management microservice')
+      .setVersion('1.0')
+      .addTag('hotels', 'Hotel operations')
+      .addTag('rooms', 'Room operations')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, document, {
+      swaggerOptions: { persistAuthorization: true },
+    });
+    console.log('Swagger documentation available at /api');
+  }
+
   const port = process.env.PORT || 3001;
   await app.listen(port);
   console.log(`Hotel Service is running on http://localhost:${port}`);
-  console.log(`Swagger documentation available at http://localhost:${port}/api`);
 }
 bootstrap();

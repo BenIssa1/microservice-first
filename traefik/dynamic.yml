@@ -1,0 +1,161 @@
+# Configuration dynamique Traefik (file provider)
+# Pas besoin du socket Docker : tout le routage est défini ici.
+
+http:
+  middlewares:
+    # Swagger : réécrire /auth/api -> /api pour que le service reçoive le bon chemin
+    auth-api-stripprefix:
+      replacePathRegex:
+        regex: "^/auth/api(.*)"
+        replacement: "/api${1}"
+    hotels-api-stripprefix:
+      replacePathRegex:
+        regex: "^/hotels/api(.*)"
+        replacement: "/api${1}"
+    reservations-api-stripprefix:
+      replacePathRegex:
+        regex: "^/reservations/api(.*)"
+        replacement: "/api${1}"
+    payments-api-stripprefix:
+      replacePathRegex:
+        regex: "^/payments/api(.*)"
+        replacement: "/api${1}"
+    notifications-api-stripprefix:
+      replacePathRegex:
+        regex: "^/notifications/api(.*)"
+        replacement: "/api${1}"
+    users-api-stripprefix:
+      replacePathRegex:
+        regex: "^/users/api(.*)"
+        replacement: "/api${1}"
+
+  routers:
+    # Swagger (priorité plus haute pour matcher avant /auth, /hotels, etc.)
+    auth-swagger:
+      rule: "PathPrefix(`/auth/api`)"
+      service: auth-service
+      middlewares:
+        - auth-api-stripprefix
+      entryPoints:
+        - web
+      priority: 20
+    hotels-swagger:
+      rule: "PathPrefix(`/hotels/api`)"
+      service: hotel-service
+      middlewares:
+        - hotels-api-stripprefix
+      entryPoints:
+        - web
+      priority: 20
+    reservations-swagger:
+      rule: "PathPrefix(`/reservations/api`)"
+      service: reservation-service
+      middlewares:
+        - reservations-api-stripprefix
+      entryPoints:
+        - web
+      priority: 20
+    payments-swagger:
+      rule: "PathPrefix(`/payments/api`)"
+      service: payment-service
+      middlewares:
+        - payments-api-stripprefix
+      entryPoints:
+        - web
+      priority: 20
+    notifications-swagger:
+      rule: "PathPrefix(`/notifications/api`)"
+      service: notification-service
+      middlewares:
+        - notifications-api-stripprefix
+      entryPoints:
+        - web
+      priority: 20
+    users-swagger:
+      rule: "PathPrefix(`/users/api`)"
+      service: user-service
+      middlewares:
+        - users-api-stripprefix
+      entryPoints:
+        - web
+      priority: 20
+
+    auth:
+      rule: "PathPrefix(`/auth`)"
+      service: auth-service
+      entryPoints:
+        - web
+      priority: 10
+    hotels:
+      rule: "PathPrefix(`/hotels`)"
+      service: hotel-service
+      entryPoints:
+        - web
+      priority: 10
+    reservations:
+      rule: "PathPrefix(`/reservations`)"
+      service: reservation-service
+      entryPoints:
+        - web
+      priority: 10
+    payments:
+      rule: "PathPrefix(`/payments`)"
+      service: payment-service
+      entryPoints:
+        - web
+      priority: 10
+    notifications:
+      rule: "PathPrefix(`/notifications`)"
+      service: notification-service
+      entryPoints:
+        - web
+      priority: 10
+    users:
+      rule: "PathPrefix(`/users`)"
+      service: user-service
+      entryPoints:
+        - web
+      priority: 10
+    welcome:
+      rule: "PathPrefix(`/`)"
+      service: welcome-service
+      entryPoints:
+        - web
+      priority: 1
+
+  services:
+    auth-service:
+      loadBalancer:
+        servers:
+          - url: "http://auth-service:3006"
+        passHostHeader: true
+    hotel-service:
+      loadBalancer:
+        servers:
+          - url: "http://hotel-service:3001"
+        passHostHeader: true
+    reservation-service:
+      loadBalancer:
+        servers:
+          - url: "http://reservation-service:3002"
+        passHostHeader: true
+    payment-service:
+      loadBalancer:
+        servers:
+          - url: "http://payment-service:3003"
+        passHostHeader: true
+    notification-service:
+      loadBalancer:
+        servers:
+          - url: "http://notification-service:3004"
+        passHostHeader: true
+    user-service:
+      loadBalancer:
+        servers:
+          - url: "http://user-service:3005"
+        passHostHeader: true
+    welcome-service:
+      loadBalancer:
+        servers:
+          - url: "http://welcome:80"
+        passHostHeader: true

@@ -11,6 +11,22 @@ import { AuthService } from './auth.service';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Get()
+  @ApiOperation({ summary: 'Auth endpoints', description: 'List of available authentication endpoints' })
+  @ApiResponse({ status: 200, description: 'List of endpoints' })
+  getEndpoints() {
+    return {
+      service: 'auth',
+      endpoints: [
+        { method: 'POST', path: '/auth/register', description: 'Register a new user' },
+        { method: 'POST', path: '/auth/login', description: 'Login and get tokens' },
+        { method: 'POST', path: '/auth/refresh', description: 'Refresh access token' },
+        { method: 'GET', path: '/auth/validate', description: 'Validate token (Bearer required)' },
+        { method: 'POST', path: '/auth/create-credentials', description: 'Create credentials for existing user (Admin)' },
+      ],
+    };
+  }
+
   @Post('register')
   @ApiOperation({ summary: 'Register a new user', description: 'Create a new user account. User must login separately to get access tokens.' })
   @ApiResponse({ status: 201, description: 'User registered successfully. Please login to get access tokens.' })
