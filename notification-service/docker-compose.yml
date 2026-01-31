@@ -1,0 +1,51 @@
+name: notification-service
+
+services:
+  db_notification:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-notification_db}
+    ports:
+      - "${DB_PORT:-5435}:5432"
+    volumes:
+      - notification_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-3004}:3004"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3004
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db_notification:5432/notification_db}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      SERVICE_TOKEN: ${SERVICE_TOKEN:-internal-service-token-change-in-production}
+    networks:
+      default:
+      micro-net:
+        aliases:
+          - notification-service
+    depends_on:
+      db_notification:
+        condition: service_healthy
+
+volumes:
+  notification_data:
+
+networks:
+  micro-net:
+    external: true
+    name: micro-net
+
