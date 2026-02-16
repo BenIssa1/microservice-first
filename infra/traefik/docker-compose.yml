@@ -1,0 +1,30 @@
+name: infra-traefik
+
+services:
+  traefik:
+    image: traefik:v3.0
+    command:
+      - "--api.insecure=true"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:3000"
+    ports:
+      - "3000:3000"   # API gateway
+      - "8080:8080"   # Dashboard Traefik
+    volumes:
+      - ./dynamic.yml:/etc/traefik/dynamic.yml:ro
+    networks:
+      - micro-net
+
+  welcome:
+    image: nginx:alpine
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+    networks:
+      - micro-net
+
+networks:
+  micro-net:
+    external: true
+    name: micro-net
+

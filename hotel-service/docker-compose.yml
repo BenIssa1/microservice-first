@@ -1,0 +1,51 @@
+name: hotel-service
+
+services:
+  db_hotel:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-hotel_db}
+    ports:
+      - "${DB_PORT:-5436}:5432"
+    volumes:
+      - hotel_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  hotel-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-3001}:3001"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3001
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db_hotel:5432/hotel_db}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      SERVICE_TOKEN: ${SERVICE_TOKEN:-internal-service-token-change-in-production}
+    networks:
+      default:
+      micro-net:
+        aliases:
+          - hotel-service
+    depends_on:
+      db_hotel:
+        condition: service_healthy
+
+volumes:
+  hotel_data:
+
+networks:
+  micro-net:
+    external: true
+    name: micro-net
+

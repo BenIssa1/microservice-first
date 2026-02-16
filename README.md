@@ -148,6 +148,40 @@ docker-compose logs -f
 docker-compose down
 ```
 
+### Avec Docker Compose (par service — mode “repos séparés”)
+
+Chaque microservice a maintenant son propre `docker-compose.yml` dans son dossier (ex: `auth-service/docker-compose.yml`).
+
+```bash
+# 0) Créer le réseau partagé (1 seule fois)
+docker network create micro-net
+
+# 1) Démarrer le RabbitMQ partagé (1 seule fois)
+cd infra/rabbitmq
+docker compose up -d
+
+# 2) Démarrer Traefik partagé (optionnel mais recommandé si tu veux un seul point d’entrée :3000)
+cd ../traefik
+docker compose up -d
+
+# 3) Exemple : lancer uniquement auth-service + sa DB
+cd auth-service
+cp .env.example .env   # optionnel (recommandé)
+docker compose up -d
+
+# Logs
+docker compose logs -f
+
+# Stop
+docker compose down
+```
+
+Notes :
+- **DB** : chaque service a sa propre DB (ports par défaut comme dans le compose “global” : auth=5438, user=5437, hotel=5436, reservation=5433, payment=5434, notification=5435). Tu peux changer `DB_PORT` si conflit.
+- **Réseau** : tous les services “infra” et microservices partagent le réseau Docker externe `micro-net` (c’est ce qui permet à Traefik et aux services de se résoudre par DNS, ex: `http://auth-service:3006`).
+- **RabbitMQ** : le broker est **partagé** (démarré via `infra/rabbitmq/docker-compose.yml`). Les services utilisent `RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672` (DNS sur `micro-net`).
+- **Inter-services** : `auth-service` appelle `user-service` et `reservation-service` appelle `hotel-service` via `http://user-service:3005` / `http://hotel-service:3001` (DNS sur `micro-net`).
+
 ### Développement local
 
 ```bash

@@ -1,0 +1,54 @@
+name: auth-service
+
+services:
+  db_auth:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-auth_db}
+    ports:
+      - "${DB_PORT:-5438}:5432"
+    volumes:
+      - auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-3006}:3006"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3006
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db_auth:5432/auth_db}
+      USER_SERVICE_URL: ${USER_SERVICE_URL:-http://user-service:3005}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-super-secret-refresh-key-change-in-production}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      SERVICE_TOKEN: ${SERVICE_TOKEN:-internal-service-token-change-in-production}
+    networks:
+      default:
+      micro-net:
+        aliases:
+          - auth-service
+    depends_on:
+      db_auth:
+        condition: service_healthy
+
+volumes:
+  auth_data:
+
+networks:
+  micro-net:
+    external: true
+    name: micro-net
+

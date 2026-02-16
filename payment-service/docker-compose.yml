@@ -1,0 +1,51 @@
+name: payment-service
+
+services:
+  db_payment:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-payment_db}
+    ports:
+      - "${DB_PORT:-5434}:5432"
+    volumes:
+      - payment_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-3003}:3003"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3003
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db_payment:5432/payment_db}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      SERVICE_TOKEN: ${SERVICE_TOKEN:-internal-service-token-change-in-production}
+    networks:
+      default:
+      micro-net:
+        aliases:
+          - payment-service
+    depends_on:
+      db_payment:
+        condition: service_healthy
+
+volumes:
+  payment_data:
+
+networks:
+  micro-net:
+    external: true
+    name: micro-net
+

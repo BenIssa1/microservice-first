@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hotel Booking API</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 2rem;
+      line-height: 1.6;
+      color: #1a1a1a;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    p { color: #555; margin-bottom: 1.5rem; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { margin: 0.5rem 0; }
+    a {
+      display: inline-block;
+      padding: 0.5rem 0.75rem;
+      background: #f0f0f0;
+      border-radius: 6px;
+      color: #0066cc;
+      text-decoration: none;
+      font-family: ui-monospace, monospace;
+      font-size: 0.9rem;
+    }
+    a:hover { background: #e0e0e0; }
+    .dashboard { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #eee; }
+    .dashboard a { background: #e8f4fc; }
+  </style>
+</head>
+<body>
+  <h1>Hotel Booking API</h1>
+  <p>Point d’entrée unique (Traefik). Endpoints disponibles :</p>
+  <ul>
+    <li><a href="/auth">/auth</a> — Authentification (login, register, refresh)</li>
+    <li><a href="/auth/api" target="_blank">/auth/api</a> — <strong>Swagger Auth</strong></li>
+    <li><a href="/users">/users</a> — Utilisateurs</li>
+    <li><a href="/users/api" target="_blank">/users/api</a> — <strong>Swagger Users</strong></li>
+    <li><a href="/hotels">/hotels</a> — Hôtels et chambres</li>
+    <li><a href="/hotels/api" target="_blank">/hotels/api</a> — <strong>Swagger Hotels</strong></li>
+    <li><a href="/reservations">/reservations</a> — Réservations</li>
+    <li><a href="/reservations/api" target="_blank">/reservations/api</a> — <strong>Swagger Reservations</strong></li>
+    <li><a href="/payments">/payments</a> — Paiements</li>
+    <li><a href="/payments/api" target="_blank">/payments/api</a> — <strong>Swagger Payments</strong></li>
+    <li><a href="/notifications">/notifications</a> — Notifications</li>
+    <li><a href="/notifications/api" target="_blank">/notifications/api</a> — <strong>Swagger Notifications</strong></li>
+  </ul>
+  <p><strong>Pour tester l’API :</strong> ouvrir le Swagger du service (ex. <a href="/auth/api" target="_blank">/auth/api</a>). Les requêtes « Try it out » partent vers <code>localhost:3000</code> (Traefik), donc tout fonctionne avec un seul point d’entrée.</p>
+  <div class="dashboard">
+    <p><a href="http://localhost:8080/dashboard/">Dashboard Traefik</a> (port 8080)</p>
+  </div>
+</body>
+</html>
+

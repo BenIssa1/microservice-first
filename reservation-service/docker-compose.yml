@@ -1,0 +1,52 @@
+name: reservation-service
+
+services:
+  db_reservation:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-reservation_db}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - reservation_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  reservation-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-3002}:3002"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3002
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db_reservation:5432/reservation_db}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      HOTEL_SERVICE_URL: ${HOTEL_SERVICE_URL:-http://hotel-service:3001}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      SERVICE_TOKEN: ${SERVICE_TOKEN:-internal-service-token-change-in-production}
+    networks:
+      default:
+      micro-net:
+        aliases:
+          - reservation-service
+    depends_on:
+      db_reservation:
+        condition: service_healthy
+
+volumes:
+  reservation_data:
+
+networks:
+  micro-net:
+    external: true
+    name: micro-net
+
